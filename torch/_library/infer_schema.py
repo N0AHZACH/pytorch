@@ -69,6 +69,24 @@ def infer_schema(
     UNKNOWN_MUTATES = "unknown"
     pf_globals = prototype_function.__globals__
     pf_locals = None
+    # Build fallback namespace for eval() so that string annotations like
+    # 'torch.Tensor' resolve even when the user's module did not import
+    # torch at the top level (common when using
+    # ``from __future__ import annotations``).
+    _eval_fallbacks: dict[str, object] = {
+        "torch": torch,
+        "Tensor": Tensor,
+        "device": device,
+        "dtype": dtype,
+        "types": types,
+        "typing": typing,
+        # The docstring promises that bare Optional, List, Sequence, Union
+        # are assumed to be typing.*.
+        "Optional": typing.Optional,
+        "List": typing.List,
+        "Sequence": typing.Sequence,
+        "Union": typing.Union,
+    }
     # TODO: Once our minimum version is py3.10+ pass `eval_str=True` to
     # inspect.signature() and we no longer need to deal with stringified
     # annotations below.
@@ -93,6 +111,15 @@ def infer_schema(
         try:
             return eval(annotation_type, pf_globals, pf_locals)
         except Exception:
+            pass
+        # Retry with fallback namespace that guarantees torch, Tensor,
+        # device, dtype, types, and typing are available.
+        merged = {**_eval_fallbacks, **pf_globals}
+        if pf_locals is not None:
+            merged.update(pf_locals)
+        try:
+            return eval(annotation_type, merged)
+        except Exception as e:
             error_fn(
                 f"Unsupported type annotation {annotation_type}. It is not a type."
             )

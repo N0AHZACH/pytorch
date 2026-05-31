@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import typing
-import unittest
 
 import torch
 from torch import Tensor, types
@@ -118,7 +117,6 @@ class TestInferSchemaWithAnnotation(TestCase):
         result = torch.library.infer_schema(foo_op_7, mutates_args=mutates_args)
         self.assertEqual(result, "(Scalar x) -> Scalar")
 
-    @unittest.expectedFailure
     def test_no_library_prefix(self):
         def foo_op(x: Tensor) -> Tensor:
             return x.clone()
@@ -206,6 +204,20 @@ class TestInferSchemaWithAnnotation(TestCase):
                 return x
 
             torch.library.infer_schema(foo_op_2, mutates_args=mutates_args)
+
+    def test_torch_not_in_module_globals(self):
+        # Regression test: when `from __future__ import annotations` is used
+        # but `torch` is only imported locally (not at module level),
+        # infer_schema should still resolve 'torch.Tensor' annotations.
+        from test.custom_operator._future_annotations_no_torch_import import (
+            get_fn_with_torch_tensor_annotation,
+        )
+
+        fn = get_fn_with_torch_tensor_annotation()
+        # Verify the precondition: torch is NOT in fn's module globals
+        self.assertNotIn("torch", fn.__globals__)
+        result = torch.library.infer_schema(fn, mutates_args={})
+        self.assertEqual(result, "(Tensor x) -> Tensor")
 
 
 if __name__ == "__main__":
