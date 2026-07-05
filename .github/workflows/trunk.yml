@@ -410,9 +410,12 @@ jobs:
     secrets: inherit
 
   linux-jammy-aarch64-py3_10-gcc15-build:
+    if: ${{ needs.job-filter.outputs.jobs == '' || contains(needs.job-filter.outputs.jobs, ' linux-jammy-aarch64-py3.10 ') }}
     name: linux-jammy-aarch64-py3.10
     uses: ./.github/workflows/_linux-build.yml
-    needs: get-label-type
+    needs:
+      - get-label-type
+      - job-filter
     with:
       runner_prefix: ${{ needs.get-label-type.outputs.label-type }}
       build-environment: linux-jammy-aarch64-py3.10
@@ -434,10 +437,13 @@ jobs:
     secrets: inherit
 
   linux-jammy-aarch64-py3_10-gcc15-test:
+    if: ${{ needs.job-filter.outputs.jobs == '' || contains(needs.job-filter.outputs.jobs, ' linux-jammy-aarch64-py3.10 ') }}
     name: linux-jammy-aarch64-py3.10
     uses: ./.github/workflows/_linux-test.yml
     needs:
       - linux-jammy-aarch64-py3_10-gcc15-build
+      - target-determination
+      - job-filter
       - get-label-type
     with:
       build-environment: ${{ needs.linux-jammy-aarch64-py3_10-gcc15-build.outputs.build-environment }}

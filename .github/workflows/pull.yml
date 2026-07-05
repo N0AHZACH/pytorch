@@ -128,6 +128,7 @@ jobs:
   # ║ linux-jammy-aarch64-py3.10-gcc15 (build + test)                      ║
   # ╠══════════════════════════════════════════════════════════════════════╣
   linux-jammy-aarch64-py3_10-gcc15-build:
+    if: ${{ needs.job-filter.outputs.jobs == '' || contains(needs.job-filter.outputs.jobs, ' linux-jammy-aarch64-py3.10 ') }}
     name: linux-jammy-aarch64-py3.10
     uses: ./.github/workflows/_linux-build.yml
     needs:
@@ -154,6 +155,7 @@ jobs:
     secrets: inherit
 
   linux-jammy-aarch64-py3_10-gcc15-test:
+    if: ${{ needs.job-filter.outputs.jobs == '' || contains(needs.job-filter.outputs.jobs, ' linux-jammy-aarch64-py3.10 ') }}
     name: linux-jammy-aarch64-py3.10
     uses: ./.github/workflows/_linux-test.yml
     needs:
